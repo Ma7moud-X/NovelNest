@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from .routers import piece
+from .routers import piece, user
 from . import db_models
 from .database import engine
 
@@ -8,7 +8,9 @@ from .database import engine
 db_models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
 app.include_router(piece.router)
+app.include_router(user.router)
 
 
 @app.get("/", tags=["Root"])

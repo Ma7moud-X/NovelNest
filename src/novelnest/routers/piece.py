@@ -53,7 +53,13 @@ def update_piece(id: int, new_piece: api_schemas.UpdatePiece, db: Session = Depe
     if not piece:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Piece with id {id} was not found")
     
-    piece_query.update(new_piece.model_dump(), synchronize_session=False)
+    update_data = new_piece.model_dump(exclude_unset=True)
+    
+    # No fields to update, return the user as is
+    if not update_data: 
+        return piece 
+    
+    piece_query.update(update_data, synchronize_session=False)
     db.commit()
     
     db.refresh(piece)

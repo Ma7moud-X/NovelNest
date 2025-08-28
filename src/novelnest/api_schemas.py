@@ -23,6 +23,7 @@ class UpdatePiece(BaseModel):
 class Piece(BasePiece):
     id: int
     created_at: datetime
+    num_of_likes: int = 0
     
     model_config = ConfigDict(from_attributes=True)
 

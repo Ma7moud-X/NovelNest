@@ -25,8 +25,13 @@ def toggle_like(like_data: api_schemas.LikeToggle, db: Annotated[Session, Depend
         if found_like:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"User {current_user.id} has already liked piece {like_data.piece_id}")
         
+        # Add the like
         new_like = db_models.Like(piece_id=like_data.piece_id, user_id=current_user.id)
         db.add(new_like)
+        
+        # Increment the like count
+        piece.num_of_likes += 1
+        
         db.commit()
         db.refresh(new_like)
         
@@ -36,7 +41,13 @@ def toggle_like(like_data: api_schemas.LikeToggle, db: Annotated[Session, Depend
         if not found_like:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Like does not exist")
 
+        # Remove the like
         like_query.delete(synchronize_session=False)
+        
+        # Decrement the like count (but don't go below 0)
+        if piece.num_of_likes > 0:
+            piece.num_of_likes -= 1
+        
         db.commit()
         
         return {"message": "Successfully removed like"}

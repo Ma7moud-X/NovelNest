@@ -1,6 +1,12 @@
 from pydantic import BaseModel, ConfigDict, EmailStr
 from datetime import datetime
 from typing import Optional
+from enum import Enum
+
+
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    USER = "user"
 
 
 class BasePiece(BaseModel):
@@ -30,24 +36,28 @@ class BaseUser(BaseModel):
 class User(BaseUser):
     id: int
     created_at: datetime
-    
+    role: UserRole = UserRole.USER
     model_config = ConfigDict(from_attributes=True)
 
 class UserCreate(BaseUser):
     password: str
 
-class UserLogin(BaseUser):
+class UserLogin(BaseModel):
+    username: str  # Only need username/email and password for login
     password: str
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
     password: Optional[str] = None
+    role: Optional[UserRole] = None
 
+#################################################################
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
-# class Token(BaseModel):
-#     access_token: str
-#     token_type: str
+class TokenData(BaseModel):
+    id: str
 
-# class TokenData(BaseModel):
-#     id: Optional[str] = None
+#################################################################

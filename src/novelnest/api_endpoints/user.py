@@ -1,10 +1,13 @@
-from fastapi import status, HTTPException, APIRouter, Depends
 from typing import List, Annotated
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
 
-from ..database import get_db
-from .. import api_schemas, db_models, OAuth2
+from fastapi import status, HTTPException, APIRouter, Depends
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
+
+from ..api_schemas import user as sc_user
+from ..core import OAuth2
+from ..core.database import get_db
+from ..db_models import user as db_user
 
 router = APIRouter(
     prefix="/users",
@@ -12,24 +15,24 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=List[api_schemas.User])
+@router.get("/", response_model=List[sc_user.User])
 def get_all_users(db: Annotated[Session, Depends(get_db)], limit: int = 10, offset: int = 0):
-    users = db.query(db_models.User).limit(limit).offset(offset).all()
+    users = db.query(db_user.User).limit(limit).offset(offset).all()
     return users
 
-@router.get("/{id}", response_model=api_schemas.User)
+@router.get("/{id}", response_model=sc_user.User)
 def get_user_by_id(id: int, db: Annotated[Session, Depends(get_db)]):
-    user = db.query(db_models.User).filter(db_models.User.id == id).first()
+    user = db.query(db_user.User).filter(db_user.User.id == id).first()
     
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {id} was not found")
 
     return user
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=api_schemas.User)
-def create_user(user: api_schemas.UserCreate, db: Annotated[Session, Depends(get_db)]):
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=sc_user.User)
+def create_user(user: sc_user.UserCreate, db: Annotated[Session, Depends(get_db)]):
     
-    same_username_or_email = db.query(db_models.User).filter(or_(db_models.User.username == user.username, db_models.User.email == user.email)).first()
+    same_username_or_email = db.query(db_user.User).filter(or_(db_user.User.username == user.username, db_user.User.email == user.email)).first()
 
     if same_username_or_email:
         if same_username_or_email.username == user.username:
@@ -40,16 +43,16 @@ def create_user(user: api_schemas.UserCreate, db: Annotated[Session, Depends(get
     
     user.password = OAuth2.hash_password(user.password)
         
-    new_user = db_models.User(**user.model_dump(), role = api_schemas.UserRole.USER)
+    new_user = db_user.User(**user.model_dump(), role = sc_user.UserRole.USER)
     db.add(new_user)
     db.commit()
     db.refresh(new_user) # to get db generated values
     return new_user
 
-@router.post("/admin", status_code=status.HTTP_201_CREATED, response_model=api_schemas.User)
-def create_admin_user(user: api_schemas.UserCreate, db: Annotated[Session, Depends(get_db)], current_user: Annotated[db_models.User, Depends(OAuth2.get_current_admin_user)]):
+@router.post("/admin", status_code=status.HTTP_201_CREATED, response_model=sc_user.User)
+def create_admin_user(user: sc_user.UserCreate, db: Annotated[Session, Depends(get_db)], current_user: Annotated[db_user.User, Depends(OAuth2.get_current_admin_user)]):
 
-    same_username_or_email = db.query(db_models.User).filter(or_(db_models.User.username == user.username, db_models.User.email == user.email)).first()
+    same_username_or_email = db.query(db_user.User).filter(or_(db_user.User.username == user.username, db_user.User.email == user.email)).first()
 
     if same_username_or_email:
         if same_username_or_email.username == user.username:
@@ -59,18 +62,18 @@ def create_admin_user(user: api_schemas.UserCreate, db: Annotated[Session, Depen
     
     user.password = OAuth2.hash_password(user.password)
         
-    new_user = db_models.User(**user.model_dump(), role = api_schemas.UserRole.ADMIN)
+    new_user = db_user.User(**user.model_dump(), role = sc_user.UserRole.ADMIN)
     db.add(new_user)
     db.commit()
     db.refresh(new_user) # to get db generated values
     return new_user
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(id: int, db: Annotated[Session, Depends(get_db)], current_user: Annotated[db_models.User, Depends(OAuth2.get_current_user)]):
+def delete_user(id: int, db: Annotated[Session, Depends(get_db)], current_user: Annotated[db_user.User, Depends(OAuth2.get_current_user)]):
     
     OAuth2.require_admin_or_self(id, current_user)
 
-    user = db.query(db_models.User).filter(db_models.User.id == id).first()
+    user = db.query(db_user.User).filter(db_user.User.id == id).first()
     
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {id} was not found")
@@ -78,9 +81,9 @@ def delete_user(id: int, db: Annotated[Session, Depends(get_db)], current_user: 
     db.delete(user)
     db.commit()
 
-@router.put("/{id}", response_model=api_schemas.User)
-def update_user(id: int, new_user: api_schemas.UserUpdate, db: Annotated[Session, Depends(get_db)], current_user: Annotated[db_models.User, Depends(OAuth2.get_current_user)]):
-    user_query = db.query(db_models.User).filter(db_models.User.id == id)
+@router.put("/{id}", response_model=sc_user.User)
+def update_user(id: int, new_user: sc_user.UserUpdate, db: Annotated[Session, Depends(get_db)], current_user: Annotated[db_user.User, Depends(OAuth2.get_current_user)]):
+    user_query = db.query(db_user.User).filter(db_user.User.id == id)
     user = user_query.first()
     
     if not user:
@@ -93,7 +96,7 @@ def update_user(id: int, new_user: api_schemas.UserUpdate, db: Annotated[Session
     user_update_data = new_user.model_dump(exclude_unset=True, exclude={'role'})
     
     # Only admins can change roles
-    if new_user.role != None and current_user.role != api_schemas.UserRole.ADMIN:
+    if new_user.role != None and current_user.role != sc_user.UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Only admins can change user roles"
@@ -108,15 +111,15 @@ def update_user(id: int, new_user: api_schemas.UserUpdate, db: Annotated[Session
         OAuth2.require_self(id, current_user)
 
 
-    conflict_query = db.query(db_models.User).filter(db_models.User.id != id)
+    conflict_query = db.query(db_user.User).filter(db_user.User.id != id)
         
     if new_user.username != None:
-        existing_username = conflict_query.filter(db_models.User.username == update_data['username']).first()
+        existing_username = conflict_query.filter(db_user.User.username == update_data['username']).first()
         if existing_username:   
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Username '{new_user.username}' is already taken.")
 
     if new_user.email != None:
-        existing_email = conflict_query.filter(db_models.User.email == update_data['email']).first()
+        existing_email = conflict_query.filter(db_user.User.email == update_data['email']).first()
         if existing_email:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Email '{new_user.email}' is already in use.")
         

@@ -3,12 +3,10 @@ from typing import List, Annotated, Optional
 from fastapi import Response, status, HTTPException, APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from ..api_schemas import like as sc_like
+from ..schemas import like_sc
 from ..core import OAuth2
 from ..core.database import get_db
-from ..db_models import like as db_like
-from ..db_models import piece as db_piece
-from ..db_models import user as db_user
+from ..models import like_t as like_t, piece_t, user_t
 
 router = APIRouter(
     prefix="/likes",
@@ -16,14 +14,14 @@ router = APIRouter(
 )
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def toggle_like(like_data: sc_like.LikeToggle, db: Annotated[Session, Depends(get_db)], current_user: Annotated[db_user.User, Depends(OAuth2.get_current_user)]):
+def toggle_like(like_data: like_sc.LikeToggle, db: Annotated[Session, Depends(get_db)], current_user: Annotated[user_t.User, Depends(OAuth2.get_current_user)]):
     
-    piece = db.query(db_piece.Piece).filter(db_piece.Piece.id == like_data.piece_id).first()
+    piece = db.query(piece_t.Piece).filter(piece_t.Piece.id == like_data.piece_id).first()
     
     if not piece:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Piece with id: {like_data.piece_id} does not exist")
      
-    like_query = db.query(db_like.Like).filter(db_like.Like.piece_id == like_data.piece_id, db_like.Like.user_id == current_user.id)
+    like_query = db.query(like_t.Like).filter(like_t.Like.piece_id == like_data.piece_id, like_t.Like.user_id == current_user.id)
     found_like = like_query.first()
     
     if like_data.direction == 1:  # User wants to like
@@ -31,7 +29,7 @@ def toggle_like(like_data: sc_like.LikeToggle, db: Annotated[Session, Depends(ge
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"User {current_user.id} has already liked piece {like_data.piece_id}")
         
         # Add the like
-        new_like = db_like.Like(piece_id=like_data.piece_id, user_id=current_user.id)
+        new_like = like_t.Like(piece_id=like_data.piece_id, user_id=current_user.id)
         db.add(new_like)
         
         # Increment the like count
@@ -57,26 +55,26 @@ def toggle_like(like_data: sc_like.LikeToggle, db: Annotated[Session, Depends(ge
         
         return {"message": "Successfully removed like"}
     
-@router.get("/count/{piece_id}", response_model=sc_like.LikeCount)
+@router.get("/count/{piece_id}", response_model=like_sc.LikeCount)
 def get_like_count(piece_id: int, db: Annotated[Session, Depends(get_db)]):
-    piece = db.query(db_piece.Piece).filter(db_piece.Piece.id == piece_id).first()
+    piece = db.query(piece_t.Piece).filter(piece_t.Piece.id == piece_id).first()
     if not piece:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Piece with id: {piece_id} does not exist")
     
-    count = db.query(db_like.Like).filter(db_like.Like.piece_id == piece_id).count()
+    count = db.query(like_t.Like).filter(like_t.Like.piece_id == piece_id).count()
     return {"piece_id": piece_id, "like_count": count}
 
-@router.get("/my-likes", response_model=List[sc_like.Like])
-def get_my_likes(db: Annotated[Session, Depends(get_db)], current_user: Annotated[db_user.User, Depends(OAuth2.get_current_user)], limit: int = 10, offset: int = 0):    
-    likes = db.query(db_like.Like).filter(db_like.Like.user_id == current_user.id).limit(limit).offset(offset).all()
+@router.get("/my-likes", response_model=List[like_sc.Like])
+def get_my_likes(db: Annotated[Session, Depends(get_db)], current_user: Annotated[user_t.User, Depends(OAuth2.get_current_user)], limit: int = 10, offset: int = 0):    
+    likes = db.query(like_t.Like).filter(like_t.Like.user_id == current_user.id).limit(limit).offset(offset).all()
     return likes
     
-@router.get("/{piece_id}", response_model=List[sc_like.Like])
+@router.get("/{piece_id}", response_model=List[like_sc.Like])
 def get_likes_for_piece(piece_id: int, db: Annotated[Session, Depends(get_db)], limit: int = 10, offset: int = 0):    
-    piece = db.query(db_piece.Piece).filter(db_piece.Piece.id == piece_id).first()
+    piece = db.query(piece_t.Piece).filter(piece_t.Piece.id == piece_id).first()
     if not piece:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Piece with id: {piece_id} does not exist")
     
-    likes = db.query(db_like.Like).filter(db_like.Like.piece_id == piece_id).limit(limit).offset(offset).all()
+    likes = db.query(like_t.Like).filter(like_t.Like.piece_id == piece_id).limit(limit).offset(offset).all()
     return likes
 

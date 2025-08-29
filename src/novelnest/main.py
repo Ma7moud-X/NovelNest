@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api_endpoints import auth, like, piece, user
+from .api import auth, like, piece, user
 from .core import database
 from .core.database import engine
 

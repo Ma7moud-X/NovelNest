@@ -101,11 +101,11 @@ Your ultimate reading companion. Track, discover, and never miss a chapter again
 - **Search & Pagination**: Efficient data retrieval with filtering
 - **API Documentation**: Auto-generated OpenAPI/Swagger documentation
 - **Poetry Package Management**: Modern dependency management and virtual environment handling
+- **Alembic Migrations**: Database migration management with Alembic
 
 ## Future Plans
 
 - **Testing Suite**: Comprehensive unit and integration tests
-- **Alembic Migrations**: Database migration management with Alembic
 - **Comments System**: Add commenting functionality for pieces
 - **File Upload**: Support for cover images
 - **Reading Progress**: Track user reading progress and bookmarks

@@ -9,7 +9,7 @@ class Piece(Base):
     __tablename__ = "pieces"
     
     id = Column(Integer, primary_key=True, nullable=False)
-    title = Column(String(200), nullable=False)
+    title = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     num_of_likes = Column(Integer, nullable=False, default=0)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))

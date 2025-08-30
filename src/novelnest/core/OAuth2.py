@@ -45,7 +45,6 @@ def verify_access_token(token: str, credentials_exception):
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algo])
         user_id: str = payload.get("user_id")
         if user_id is None:
-            logger.warning("Token missing user_id")
             raise credentials_exception
         token_data = auth_sc.TokenData(id=str(user_id))
         return token_data
